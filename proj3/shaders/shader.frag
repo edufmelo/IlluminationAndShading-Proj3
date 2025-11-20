@@ -2,8 +2,35 @@
 
 precision mediump float;
 
-uniform bool u_use_normals;
 in vec3 v_normal;
+
+const int MAX_LIGHTS = 8;
+
+struct LightInfo {
+    // Light colour intensities
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+
+    // Light geometry
+    vec4 position;  // Position/direction of light (in camera coordinates)
+    // ...
+    //   additional fields
+    // ...
+};
+
+struct MaterialInfo {
+    vec3 Ka;
+    vec3 Kd;
+    vec3 Ks;
+    float shininess;
+};
+
+uniform bool u_use_normals;
+uniform int u_n_lights; // Effective number of lights used
+
+uniform LightInfo u_lights[MAX_LIGHTS]; // The array of lights present in the scene
+uniform MaterialInfo u_material;        // The material of the object being drawn
 
 out vec4 color;
 

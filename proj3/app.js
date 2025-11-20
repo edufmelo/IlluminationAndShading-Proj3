@@ -5,6 +5,9 @@ import * as dat from '../../libs/dat.gui.module.js'; // coisas do view eye
 
 import * as CUBE from '../../libs/objects/cube.js';
 import * as SPHERE from '../../libs/objects/sphere.js';
+import * as BUNNY from '../../libs/objects/bunny.js';
+import * as TORUS from '../../libs/objects/torus.js';
+import * as CYLINDER from '../../libs/objects/cylinder.js';
 
 import * as STACK from '../../libs/stack.js';
 
@@ -33,11 +36,44 @@ function setup(shaders) {
         normals: true
     }
 
+    // let options = {
+    //     backfaceCulling: true,
+    //     depthTest: true
+    // }
+
+    let position = {
+        x: 0,
+        y: 0,
+        z: 10,
+        w: 1
+    }
+
+    let intensities = {
+        ambient: [50,50,50],
+        diffuse: [60,60,60],
+        specular: [200,200,200]
+    }
+
+    let axis = {
+        x: 0,
+        y: 0,
+        z: -1
+    }
+
+    let material = {
+        Ka: vec3(150, 150, 150),
+        Kd: vec3(150, 150, 150),
+        Ks: vec3(200, 200, 200),
+        shininess: 100
+    }
+
     const gui = new dat.GUI();
 
     const optionsGui = gui.addFolder("options");
     optionsGui.add(options, "wireframe");
     optionsGui.add(options, "normals");
+    // optionsGui.add(options, "backfaceCulling");
+    // optionsGui.add(options, "depthTest");
 
     const cameraGui = gui.addFolder("camera");
 
@@ -67,6 +103,31 @@ function setup(shaders) {
     up.add(camera.up, 1).step(0.05).listen().domElement.style.pointerEvents = "none";;
     up.add(camera.up, 2).step(0.05).listen().domElement.style.pointerEvents = "none";;
 
+    const lights = gui.addFolder("lights");
+    const light1 = lights.addFolder("light 1");
+
+    const positionGui = light1.addFolder("position");
+    positionGui.add(position, "x");
+    positionGui.add(position, "y");
+    positionGui.add(position, "z");
+    positionGui.add(position, "w");
+
+    // const intensitiesGui = light1.addFolder("intensities");
+    // intensitiesGui.add(intensities, "ambient");
+    // intensitiesGui.add(intensities, "diffuse");
+    // intensitiesGui.add(intensities, "specular");
+
+    const axisGui = light1.addFolder("axis");
+    axisGui.add(axis, "x");
+    axisGui.add(axis, "y");
+    axisGui.add(axis, "z");
+
+    // const materialGui = gui.addFolder("material");
+    // materialGui.add(material, "Ka");
+    // materialGui.add(material, "Kd");
+    // materialGui.add(material, "Ks");
+    // materialGui.add(material, "shininess");
+    
     // matrices
     let mView, mProjection;
 
@@ -81,7 +142,6 @@ function setup(shaders) {
     window.addEventListener('resize', resizeCanvasToFullWindow);
 
     window.addEventListener('wheel', function (event) {
-
 
         if (!event.altKey && !event.metaKey && !event.ctrlKey) { // Change fovy
             const factor = 1 - event.deltaY / 1000;
@@ -188,7 +248,9 @@ function setup(shaders) {
 
         mProjection = perspective(camera.fovy, camera.aspect, camera.near, camera.far);
 
-
+        // const u_shininess = gl.getUniformLocation(program, "u_material.shininess");
+        // const u_KaOfLight0 = gl.getUniformLocation(program, "u_lights[0].ambient");
+        
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_model_view"), false, flatten(STACK.modelView()));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_projection"), false, flatten(mProjection));
         gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_normals"), false, flatten(normalMatrix(STACK.modelView())));
