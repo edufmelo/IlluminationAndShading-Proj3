@@ -16,7 +16,9 @@ function setup(shaders) {
     const gl = setupWebGL(canvas);
 
     CUBE.init(gl);
-    SPHERE.init(gl);
+    TORUS.init(gl);
+    BUNNY.init(gl);
+    CYLINDER.init(gl);
 
     const program = buildProgramFromSources(gl, shaders['shader.vert'], shaders['shader.frag']);
 
@@ -49,9 +51,9 @@ function setup(shaders) {
     }
 
     let intensities = {
-        ambient: [50,50,50],
-        diffuse: [60,60,60],
-        specular: [200,200,200]
+        ambient: [50, 50, 50],
+        diffuse: [60, 60, 60],
+        specular: [200, 200, 200]
     }
 
     let axis = {
@@ -127,7 +129,7 @@ function setup(shaders) {
     // materialGui.add(material, "Kd");
     // materialGui.add(material, "Ks");
     // materialGui.add(material, "shininess");
-    
+
     // matrices
     let mView, mProjection;
 
@@ -236,6 +238,60 @@ function setup(shaders) {
         gl.viewport(0, 0, canvas.width, canvas.height);
     }
 
+    function drawBase() {
+        STACK.pushMatrix();
+        STACK.multScale([10, 0.5, 10]);
+        uploadModelView();
+        uploadNormals();
+        CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
+        STACK.popMatrix();
+    }
+    function drawTorus() {
+        STACK.pushMatrix();
+        STACK.multTranslation([0.0,0.5,0.0]);
+        STACK.multScale([2,2,2]);
+        uploadModelView();
+        uploadNormals();
+        TORUS.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
+        STACK.popMatrix();
+    }
+    function drawCylinder(){
+        STACK.pushMatrix();
+        STACK.multTranslation([0.25,0.25,-0.25]);
+        STACK.multScale([2,2,2]);
+        uploadModelView();
+        uploadNormals();
+        CYLINDER.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
+        STACK.popMatrix();
+    }
+    function drawCube(){
+        STACK.pushMatrix();
+        STACK.multTranslation([0.0,0.25,0.0]);
+        STACK.multScale([2,2,2]);
+        uploadModelView();
+        uploadNormals();
+        CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
+        STACK.popMatrix();
+    }
+    function drawBunny() {
+        STACK.pushMatrix();
+        STACK.multTranslation([0.0,0.25,0.0]);
+        STACK.multScale([2,2,2]);
+        uploadModelView();
+        uploadNormals();
+        BUNNY.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
+        STACK.popMatrix();
+    }
+    function uploadMatrix(name, m) {
+        gl.uniformMatrix4fv(gl.getUniformLocation(program, name), false, flatten(m));
+    }
+
+    function uploadProjection(m) { uploadMatrix("u_projection", m); }
+
+    function uploadModelView() { uploadMatrix("u_model_view", STACK.modelView()); }
+
+    function uploadNormals() { uploadMatrix("u_normals", normalMatrix(STACK.modelView())); }
+
     function render(time) {
         window.requestAnimationFrame(render);
 
@@ -250,15 +306,23 @@ function setup(shaders) {
 
         // const u_shininess = gl.getUniformLocation(program, "u_material.shininess");
         // const u_KaOfLight0 = gl.getUniformLocation(program, "u_lights[0].ambient");
-        
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_model_view"), false, flatten(STACK.modelView()));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_projection"), false, flatten(mProjection));
-        gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_normals"), false, flatten(normalMatrix(STACK.modelView())));
+
+        //gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_model_view"), false, flatten(STACK.modelView()));
+        // gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_projection"), false, flatten(mProjection));
+        // gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_normals"), false, flatten(normalMatrix(STACK.modelView())));
+        uploadProjection(mProjection);
+        //uploadModelView();
+        //uploadNormals();
 
         gl.uniform1i(gl.getUniformLocation(program, "u_use_normals"), options.normals);
-
-        SPHERE.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
-        CUBE.draw(gl, program, gl.LINES);
+        //uploadModelView();
+        //SPHERE.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
+        //CUBE.draw(gl, program, gl.LINES);
+        drawBase();
+        drawTorus();
+        drawCylinder();
+        drawCube();
+        drawBunny();
     }
 }
 
