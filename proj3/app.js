@@ -24,7 +24,7 @@ function setup(shaders) {
 
     // Camera  
     let camera = {
-        eye: vec3(0, 0, 5),
+        eye: vec3(2, 4, 11),
         at: vec3(0, 0, 0),
         up: vec3(0, 1, 0),
         fovy: 45,
@@ -240,46 +240,47 @@ function setup(shaders) {
 
     function drawBase() {
         STACK.pushMatrix();
-        STACK.multScale([10, 0.5, 10]);
-        uploadModelView();
-        uploadNormals();
-        CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
+            STACK.multTranslation([0.0,-0.5,0.0]);
+            STACK.multScale([10, 0.5, 10]);
+            uploadModelView();
+            uploadNormals();
+            CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
     function drawTorus() {
         STACK.pushMatrix();
-        STACK.multTranslation([0.0,0.5,0.0]);
-        STACK.multScale([2,2,2]);
-        uploadModelView();
-        uploadNormals();
-        TORUS.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
+            STACK.multTranslation([-2.0,0.16,2.0]);
+            STACK.multScale([2,2,2]);
+            uploadModelView();
+            uploadNormals();
+            TORUS.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
     function drawCylinder(){
         STACK.pushMatrix();
-        STACK.multTranslation([0.25,0.25,-0.25]);
-        STACK.multScale([2,2,2]);
-        uploadModelView();
-        uploadNormals();
-        CYLINDER.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
+            STACK.multTranslation([2.0,0.74,-2.0]);
+            STACK.multScale([2,2,2]);
+            uploadModelView();
+            uploadNormals();
+            CYLINDER.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
     function drawCube(){
         STACK.pushMatrix();
-        STACK.multTranslation([0.0,0.25,0.0]);
-        STACK.multScale([2,2,2]);
-        uploadModelView();
-        uploadNormals();
-        CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
+            STACK.multTranslation([-2.0,0.74,-2.0]);
+            STACK.multScale([2,2,2]);
+            uploadModelView();
+            uploadNormals();
+            CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
     function drawBunny() {
         STACK.pushMatrix();
-        STACK.multTranslation([0.0,0.25,0.0]);
-        STACK.multScale([2,2,2]);
-        uploadModelView();
-        uploadNormals();
-        BUNNY.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
+            STACK.multTranslation([2.0,0.74,2.0]);
+            STACK.multScale([2,2,2]);
+            uploadModelView();
+            uploadNormals();
+            BUNNY.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
     function uploadMatrix(name, m) {
