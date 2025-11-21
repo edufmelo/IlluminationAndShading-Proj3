@@ -3,42 +3,48 @@
 precision mediump float;
 
 in vec3 v_normal;
-
-const int MAX_LIGHTS = 8;
-
-struct LightInfo {
-    // Light colour intensities
-    vec3 ambient;
-    vec3 diffuse;
-    vec3 specular;
-
-    // Light geometry
-    vec4 position;  // Position/direction of light (in camera coordinates)
-    // ...
-    //   additional fields
-    // ...
-};
-
-struct MaterialInfo {
-    vec3 Ka;
-    vec3 Kd;
-    vec3 Ks;
-    float shininess;
-};
-
-uniform bool u_use_normals;
-uniform int u_n_lights; // Effective number of lights used
-
-uniform LightInfo u_lights[MAX_LIGHTS]; // The array of lights present in the scene
-uniform MaterialInfo u_material;        // The material of the object being drawn
+in vec3 v_light;
+in vec3 v_viewer;
 
 out vec4 color;
 
+// Propriedades do Material - passar valores para js, usuário pode alterar
+const vec3 materialAmb = vec3(1.0, 0.0, 0.0); // Vermelho
+const vec3 materialDif = vec3(1.0, 0.0, 0.0);
+const vec3 materialSpe = vec3(1.0, 1.0, 1.0);
+const float shininess = 6.0;
+
+// Propriedades da Luz 
+const vec3 lightAmb = vec3(0.2, 0.2, 0.2);
+const vec3 lightDif = vec3(0.7, 0.7, 0.7);
+const vec3 lightSpe = vec3(1.0, 1.0, 1.0);
+
 void main() {
-    vec3 c = vec3(1.0f, 1.0f, 1.0f);
+    // Renormalizar os vetores após a interpolação 
+    vec3 N = normalize(v_normal);
+    vec3 L = normalize(v_light);
+    vec3 V = normalize(v_viewer);
+    
+    // Vetor Halfway ou Reflexão (Phong)
+    // slide usa H = L + V 
+    vec3 H = normalize(L + V);
 
-    if(u_use_normals)
-        c = 0.5f * (v_normal + vec3(1.0f, 1.0f, 1.0f));
+    // Cálculo das cores bases
+    vec3 ambientColor = lightAmb * materialAmb;
+    vec3 diffuseColor = lightDif * materialDif;
+    vec3 specularColor = lightSpe * materialSpe;
 
-    color = vec4(c, 1.0f);
+    // Difusa 
+    float diffuseFactor = max(dot(L, N), 0.0);
+    vec3 diffuse = diffuseFactor * diffuseColor;
+
+    // Especular
+    float specularFactor = 0.0;
+    if (diffuseFactor > 0.0) {
+        specularFactor = pow(max(dot(N, H), 0.0), shininess);
+    }
+    vec3 specular = specularFactor * specularColor;
+
+    // Cor final
+    color = vec4(ambientColor + diffuse + specular, 1.0);
 }
