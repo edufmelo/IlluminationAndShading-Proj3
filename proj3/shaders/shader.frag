@@ -8,7 +8,7 @@ in vec3 v_viewer;
 
 out vec4 color;
 
-// Propriedades do Material 
+// Propriedades do Material - passar valores para js, usuário pode alterar
 const vec3 materialAmb = vec3(1.0, 0.0, 0.0); // Vermelho
 const vec3 materialDif = vec3(1.0, 0.0, 0.0);
 const vec3 materialSpe = vec3(1.0, 1.0, 1.0);
