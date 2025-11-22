@@ -1,20 +1,29 @@
 #version 300 es
 
+precision mediump float;
+
 in vec4 a_position;
 in vec4 a_normal;
 
-// Matrizes Uniformes 
 uniform mat4 u_model_view;
 uniform mat4 u_projection;
 uniform mat4 u_normals;
 
-// Variáveis para passar ao Fragment Shader (Varyings)
+struct LightInfo {
+    vec3 ambient;
+    vec3 diffuse;
+    vec3 specular;
+    vec4 position;
+    vec3 direction; 
+    float cutoff;
+    float aperture;
+};
+uniform LightInfo u_light;
+
+// Variáveis para passar ao frag shader (varyings)
 out vec3 v_normal;
 out vec3 v_light;
 out vec3 v_viewer;
-
-// Posição da luz (Em coord da camera)
-const vec4 lightPosition = vec4(0.0, 1.8, 1.3, 1.0); 
 
 void main() {
     // Calcula posição do vértice (ponto) no referencial da camera (aula 21)
@@ -26,10 +35,10 @@ void main() {
     v_normal = (u_normals * a_normal).xyz;
 
     // Calcula vetor Light (L) 
-    if (lightPosition.w == 0.0) 
-        v_light = normalize(lightPosition.xyz);
+    if (u_light.position.w == 0.0) 
+        v_light = normalize(u_light.position.xyz);
     else 
-        v_light = normalize(lightPosition.xyz - posC);
+        v_light = normalize(u_light.position.xyz - posC);
 
     // Calcula vetor View (V)
     // Como estamos no referencial da camera (olho em 0,0,0), V aponta da superfície para a origem

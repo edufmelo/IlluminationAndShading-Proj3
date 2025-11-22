@@ -4,7 +4,6 @@ import { length, flatten, inverse, mult, normalMatrix, perspective, lookAt, vec4
 import * as dat from '../../libs/dat.gui.module.js'; // coisas do view eye
 
 import * as CUBE from '../../libs/objects/cube.js';
-import * as SPHERE from '../../libs/objects/sphere.js';
 import * as BUNNY from '../../libs/objects/bunny.js';
 import * as TORUS from '../../libs/objects/torus.js';
 import * as CYLINDER from '../../libs/objects/cylinder.js';
@@ -27,7 +26,7 @@ function setup(shaders) {
         eye: vec3(2, 4, 11),
         at: vec3(0, 0, 0),
         up: vec3(0, 1, 0),
-        fovy: 45,
+        fovy: 55,
         aspect: 1, // Updated further down
         near: 0.1,
         far: 20
@@ -51,9 +50,9 @@ function setup(shaders) {
     }
 
     let intensities = {
-        ambient: [50, 50, 50],
-        diffuse: [60, 60, 60],
-        specular: [200, 200, 200]
+        ambient: vec3(120, 120, 120),
+        diffuse: vec3(255, 255, 255),
+        specular: vec3(200, 200, 200)
     }
 
     let axis = {
@@ -62,12 +61,48 @@ function setup(shaders) {
         z: -1
     }
 
+    // Parâmetros do Spotlight
+    let spotInfo = {
+        aperture: 45,  // Ângulo em graus
+        cutoff: 10     // Decaimento
+    };
+
+    // Material interativo para Bunny
     let material = {
-        Ka: vec3(150, 150, 150),
-        Kd: vec3(150, 150, 150),
-        Ks: vec3(200, 200, 200),
-        shininess: 100
+        Ka: vec3(55, 45, 45),   
+        Kd: vec3(220, 180, 180),  
+        Ks: vec3(255, 255, 255),  // Brilho branco intenso
+        shininess: 150 
     }
+
+    // Materiais fixos (Outros objetos)
+    const materialBase = {
+        Ka: vec3(191,169,81),
+        Kd: vec3(180, 140, 100),  
+        Ks: vec3(50, 50, 50),     // Pouco brilho (fosco)
+        shininess: 10
+    };
+
+    const materialTorus = {
+        Ka: vec3(10, 40, 10),
+        Kd: vec3(50, 200, 50),   
+        Ks: vec3(255, 255, 255),  
+        shininess: 100
+    };
+
+    const materialCylinder = {
+        Ka: vec3(128,0,128),
+        Kd: vec3(40, 120, 100),   
+        Ks: vec3(150, 150, 150),  
+        shininess: 80
+    };
+
+    const materialCube = {
+        Ka: vec3(50, 20, 20),
+        Kd: vec3(200, 80, 80),    
+        Ks: vec3(200, 200, 200),  // Brilho quase branco
+        shininess: 60
+    };
 
     const gui = new dat.GUI();
 
@@ -79,7 +114,7 @@ function setup(shaders) {
 
     const cameraGui = gui.addFolder("camera");
 
-    cameraGui.add(camera, "fovy").min(1).max(179).step(1).listen();
+    cameraGui.add(camera, "fovy").min(1).max(100).step(1).listen();
     cameraGui.add(camera, "aspect").min(0).max(10).step(0.01).listen().domElement.style.pointerEvents = "none";
 
     cameraGui.add(camera, "near").min(0.1).max(20).step(0.01).listen().onChange(function (v) {
@@ -105,8 +140,9 @@ function setup(shaders) {
     up.add(camera.up, 1).step(0.05).listen().domElement.style.pointerEvents = "none";;
     up.add(camera.up, 2).step(0.05).listen().domElement.style.pointerEvents = "none";;
 
+    // Pasta para light 1
     const lights = gui.addFolder("lights");
-    const light1 = lights.addFolder("light 1");
+    const light1 = lights.addFolder("first light");
 
     const positionGui = light1.addFolder("position");
     positionGui.add(position, "x");
@@ -114,21 +150,24 @@ function setup(shaders) {
     positionGui.add(position, "z");
     positionGui.add(position, "w");
 
-    // const intensitiesGui = light1.addFolder("intensities");
-    // intensitiesGui.add(intensities, "ambient");
-    // intensitiesGui.add(intensities, "diffuse");
-    // intensitiesGui.add(intensities, "specular");
+    const intensitiesGui = light1.addFolder("intensities");
+    intensitiesGui.addColor(intensities, "ambient");
+    intensitiesGui.addColor(intensities, "diffuse");
+    intensitiesGui.addColor(intensities, "specular");
 
     const axisGui = light1.addFolder("axis");
     axisGui.add(axis, "x");
     axisGui.add(axis, "y");
     axisGui.add(axis, "z");
 
-    // const materialGui = gui.addFolder("material");
-    // materialGui.add(material, "Ka");
-    // materialGui.add(material, "Kd");
-    // materialGui.add(material, "Ks");
-    // materialGui.add(material, "shininess");
+    light1.add(spotInfo, "aperture").min(0).max(180);
+    light1.add(spotInfo, "cutoff").min(0).max(100);
+
+    const materialGui = gui.addFolder("material (bunny)");
+    materialGui.addColor(material, "Ka");
+    materialGui.addColor(material, "Kd");
+    materialGui.addColor(material, "Ks");
+    materialGui.add(material, "shininess").min(1).max(500);
 
     // matrices
     let mView, mProjection;
@@ -244,45 +283,67 @@ function setup(shaders) {
             STACK.multScale([10, 0.5, 10]);
             uploadModelView();
             uploadNormals();
+
+            // Carrega material verde para chão
+            uploadMaterial(materialBase);
+
             CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
+
     function drawTorus() {
         STACK.pushMatrix();
             STACK.multTranslation([-2.0,0.16,2.0]);
             STACK.multScale([2,2,2]);
             uploadModelView();
             uploadNormals();
+
+            uploadMaterial(materialTorus);
+
             TORUS.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
+
     function drawCylinder(){
         STACK.pushMatrix();
             STACK.multTranslation([2.0,0.74,-2.0]);
             STACK.multScale([2,2,2]);
             uploadModelView();
             uploadNormals();
+
+            uploadMaterial(materialCylinder);
+
             CYLINDER.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
+
     function drawCube(){
         STACK.pushMatrix();
             STACK.multTranslation([-2.0,0.74,-2.0]);
             STACK.multScale([2,2,2]);
             uploadModelView();
             uploadNormals();
+
+            uploadMaterial(materialCube);
+
             CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
+
     function drawBunny() {
         STACK.pushMatrix();
             STACK.multTranslation([2.0,0.74,2.0]);
             STACK.multScale([2,2,2]);
             uploadModelView();
             uploadNormals();
+
+            // Material do Bunny deve ser o único que varia
+            uploadMaterial(material);
+
             BUNNY.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
         STACK.popMatrix();
     }
+
     function uploadMatrix(name, m) {
         gl.uniformMatrix4fv(gl.getUniformLocation(program, name), false, flatten(m));
     }
@@ -292,6 +353,62 @@ function setup(shaders) {
     function uploadModelView() { uploadMatrix("u_model_view", STACK.modelView()); }
 
     function uploadNormals() { uploadMatrix("u_normals", normalMatrix(STACK.modelView())); }
+
+    function uploadUniforms() {
+        // Enviando first light
+        const u_light_amb_loc = gl.getUniformLocation(program, "u_light.ambient");
+        const u_light_dif_loc = gl.getUniformLocation(program, "u_light.diffuse");
+        const u_light_spe_loc = gl.getUniformLocation(program, "u_light.specular");
+        const u_light_pos_loc = gl.getUniformLocation(program, "u_light.position"); // Assumindo que você vai criar isso no shader ou usar fixo por enquanto
+
+        // Spotlight
+        const u_light_dir_loc = gl.getUniformLocation(program, "u_light.direction");
+        const u_light_cut_loc = gl.getUniformLocation(program, "u_light.cutoff");
+        const u_light_apr_loc = gl.getUniformLocation(program, "u_light.aperture");
+
+        gl.uniform3fv(u_light_amb_loc, flatten(vec3(intensities.ambient)));
+        gl.uniform3fv(u_light_dif_loc, flatten(vec3(intensities.diffuse)));
+        gl.uniform3fv(u_light_spe_loc, flatten(vec3(intensities.specular)));
+
+        // Posição World -> Camera
+        // A posição definida no GUI é Mundo. O Shader espera camera.
+        // Multiplicamos ViewMatrix * LightPosition
+        let lightPosWorld = vec4(position.x, position.y, position.z, position.w);
+        let lightPosCamera = mult(mView, lightPosWorld);
+
+        gl.uniform4fv(u_light_pos_loc, flatten(lightPosCamera));
+
+        // Direção World -> Camera
+        // O eixo (direção do spot) também precisa girar com a camera
+        // O 'w' é 0.0 pois é um vetor (direção), não um ponto.
+        let spotDirWorld = vec4(axis.x, axis.y, axis.z, 0.0);
+        let spotDirCamera = mult(mView, spotDirWorld);
+
+        // Passamos apenas xyz normalizado
+        gl.uniform3fv(u_light_dir_loc, flatten(normalize(vec3(spotDirCamera[0], spotDirCamera[1], spotDirCamera[2]))));
+
+        // Parametros spotlight
+        gl.uniform1f(u_light_cut_loc, spotInfo.cutoff);
+        
+        // Convertemos graus para cosseno do ângulo para o shader
+        // cos(graus * PI / 180)
+        let apertureCos = Math.cos(spotInfo.aperture * Math.PI / 180);
+        gl.uniform1f(u_light_apr_loc, apertureCos);
+
+        gl.uniform1i(gl.getUniformLocation(program, "u_use_normals"), options.normals);
+    } 
+
+    function uploadMaterial(mat) {
+        const u_mat_ka_loc = gl.getUniformLocation(program, "u_material.Ka");
+        const u_mat_kd_loc = gl.getUniformLocation(program, "u_material.Kd");
+        const u_mat_ks_loc = gl.getUniformLocation(program, "u_material.Ks");
+        const u_mat_shi_loc = gl.getUniformLocation(program, "u_material.shininess");
+
+        gl.uniform3fv(u_mat_ka_loc, flatten(mat.Ka));
+        gl.uniform3fv(u_mat_kd_loc, flatten(mat.Kd));
+        gl.uniform3fv(u_mat_ks_loc, flatten(mat.Ks));
+        gl.uniform1f(u_mat_shi_loc, mat.shininess);
+    }
 
     function render(time) {
         window.requestAnimationFrame(render);
@@ -304,21 +421,10 @@ function setup(shaders) {
         STACK.loadMatrix(mView);
 
         mProjection = perspective(camera.fovy, camera.aspect, camera.near, camera.far);
-
-        // const u_shininess = gl.getUniformLocation(program, "u_material.shininess");
-        // const u_KaOfLight0 = gl.getUniformLocation(program, "u_lights[0].ambient");
-
-        //gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_model_view"), false, flatten(STACK.modelView()));
-        // gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_projection"), false, flatten(mProjection));
-        // gl.uniformMatrix4fv(gl.getUniformLocation(program, "u_normals"), false, flatten(normalMatrix(STACK.modelView())));
         uploadProjection(mProjection);
-        //uploadModelView();
-        //uploadNormals();
 
-        gl.uniform1i(gl.getUniformLocation(program, "u_use_normals"), options.normals);
-        //uploadModelView();
-        //SPHERE.draw(gl, program, options.wireframe ? gl.LINES : gl.TRIANGLES);
-        //CUBE.draw(gl, program, gl.LINES);
+        uploadUniforms();
+
         drawBase();
         drawTorus();
         drawCylinder();
