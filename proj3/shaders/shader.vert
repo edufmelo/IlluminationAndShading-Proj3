@@ -1,6 +1,7 @@
 #version 300 es
 
 precision mediump float;
+precision mediump int;
 
 in vec4 a_position;
 in vec4 a_normal;
@@ -9,42 +10,118 @@ uniform mat4 u_model_view;
 uniform mat4 u_projection;
 uniform mat4 u_normals;
 
+const int MAX_LIGHTS = 8;
+
 struct LightInfo {
     vec3 ambient;
     vec3 diffuse;
     vec3 specular;
     vec4 position;
-    vec3 direction; 
+    vec3 direction;
     float cutoff;
     float aperture;
 };
-uniform LightInfo u_light;
 
-// Variáveis para passar ao frag shader (varyings)
+struct MaterialInfo {
+    vec3 Ka;
+    vec3 Kd;
+    vec3 Ks;
+    float shininess;
+};
+
+uniform LightInfo u_lights[MAX_LIGHTS];
+uniform MaterialInfo u_material;
+uniform int u_n_lights;
+uniform int u_shading_mode; // 0 = Phong, 1 = Gouraud
+
 out vec3 v_normal;
-out vec3 v_light;
 out vec3 v_viewer;
+out vec3 v_color;
 
 void main() {
     // Calcula posição do vértice (ponto) no referencial da camera (aula 21)
     // mView * mModel * a_position (referencial do obj) -> refencial camera
     // usuario pode alterar a_position no js
     vec3 posC = (u_model_view * a_position).xyz;
+    if (u_shading_mode == 1) {
+        // GOURAUD SHADING
+        vec3 N = normalize((u_normals * a_normal).xyz);
+        vec3 V = normalize(-posC);
+        // Vetor Halfway ou Reflexão (Phong)
+        // slide usa H = L + V 
+        //vec3 H = normalize(L + V);
 
-    // Calcula vetor Normal (N) 
-    v_normal = (u_normals * a_normal).xyz;
+        // Converter de 0 a 255 para 0 a 1
+        // O dat.gui manda 0-255, mas a luz calcula com 0.0-1.0
+        vec3 matAmb = u_material.Ka / 255.0;
+        vec3 matDif = u_material.Kd / 255.0;
+        vec3 matSpe = u_material.Ks / 255.0;
 
-    // Calcula vetor Light (L) 
-    if (u_light.position.w == 0.0) 
-        v_light = normalize(u_light.position.xyz);
-    else 
-        v_light = normalize(u_light.position.xyz - posC);
+        vec3 result = vec3(0.0);
 
-    // Calcula vetor View (V)
-    // Como estamos no referencial da camera (olho em 0,0,0), V aponta da superfície para a origem
-    // Exemplo no slide 4 (aula 21)
-    v_viewer = -posC; //  (Projeção Perspectiva)
+        for (int i = 0; i < MAX_LIGHTS; i++) {
+            if (i >= u_n_lights) break;
+            vec3 L;
+            if (u_lights[i].position.w == 0.0)
+                L = normalize(u_lights[i].position.xyz);
+            else
+                L = normalize(u_lights[i].position.xyz - posC);
 
-    // Posição final do vértice na tela
+            vec3 lightAmb = u_lights[i].ambient / 255.0;
+            vec3 lightDif = u_lights[i].diffuse / 255.0;
+            vec3 lightSpe = u_lights[i].specular / 255.0;
+
+            //Ambiente
+            vec3 ambient = lightAmb * matAmb;
+
+            //Difusa
+            float diffuseFactor = max(dot(L, N), 0.0);
+            vec3 diffuse = diffuseFactor * (lightDif * matDif);
+
+            vec3 H = normalize(L + V);
+
+            //Especular
+            float specularFactor = 0.0;
+            if (diffuseFactor > 0.0) {
+                specularFactor = pow(max(dot(N, H), 0.0), u_material.shininess);
+            }
+            vec3 specular = specularFactor * (lightSpe * matSpe);
+            // Só aplica se a luz for pontual (w=1). Se for direcional (w=0), ignora spot.
+            if (u_lights[i].position.w == 1.0) {
+                // Vetor D, na qual, é a direção do spot (normalizada)
+                vec3 D = normalize(u_lights[i].direction);
+                
+                // Cosseno do ângulo entre o vetor da luz (-L) e a direção do spot (D)
+                // L aponta DO ponto PARA a luz e -L aponta DA luz PARA o ponto.
+                float spotCos = dot(-L, D);
+
+                // Se estiver dentro do cone (cosseno maior que abertura)
+                if (spotCos > u_lights[i].aperture) {
+                    // Fator de atenuação suave nas bordas
+                    float spotFactor = pow(spotCos, u_lights[i].cutoff);
+                    
+                    diffuse *= spotFactor;
+                    specular *= spotFactor;
+                
+                } else {
+                    // Fora do cone -> sem luz direta
+                    diffuse = vec3(0.0);
+                    specular = vec3(0.0);
+                }
+            }
+            result += ambient + diffuse + specular;
+        }
+
+        v_color = result;
+    }
+    if (u_shading_mode == 0) {
+        // Calcula vetor Normal (N) 
+        v_normal = (u_normals * a_normal).xyz;
+        // Calcula vetor View (V)
+        // Como estamos no referencial da camera (olho em 0,0,0), V aponta da superfície para a origem
+        // Exemplo no slide 4 (aula 21)
+        v_viewer = -posC;
+        // Posição final do vértice na tela
+    }
     gl_Position = u_projection * u_model_view * a_position;
 }

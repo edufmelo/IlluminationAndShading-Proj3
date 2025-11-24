@@ -33,39 +33,13 @@ function setup(shaders) {
     }
 
     let options = {
-        wireframe: false,
-        normals: true
+        wireframe: false
     }
 
     // let options = {
     //     backfaceCulling: true,
     //     depthTest: true
     // }
-
-    let position = {
-        x: 0,
-        y: 0,
-        z: 10,
-        w: 1
-    }
-
-    let intensities = {
-        ambient: vec3(120, 120, 120),
-        diffuse: vec3(255, 255, 255),
-        specular: vec3(200, 200, 200)
-    }
-
-    let axis = {
-        x: 0,
-        y: 0,
-        z: -1
-    }
-
-    // Parâmetros do Spotlight
-    let spotInfo = {
-        aperture: 45,  // Ângulo em graus
-        cutoff: 10     // Decaimento
-    };
 
     // Material interativo para Bunny
     let material = {
@@ -103,12 +77,12 @@ function setup(shaders) {
         Ks: vec3(200, 200, 200),  // Brilho quase branco
         shininess: 60
     };
-
+    let shading = { mode: 0 }; // 0 = Phong, 1 = Gouraud
     const gui = new dat.GUI();
 
     const optionsGui = gui.addFolder("options");
     optionsGui.add(options, "wireframe");
-    optionsGui.add(options, "normals");
+
     // optionsGui.add(options, "backfaceCulling");
     // optionsGui.add(options, "depthTest");
 
@@ -126,42 +100,80 @@ function setup(shaders) {
     });
 
     const eye = cameraGui.addFolder("eye");
-    eye.add(camera.eye, 0).step(0.05).listen().domElement.style.pointerEvents = "none";;
-    eye.add(camera.eye, 1).step(0.05).listen().domElement.style.pointerEvents = "none";;
-    eye.add(camera.eye, 2).step(0.05).listen().domElement.style.pointerEvents = "none";;
+    eye.add(camera.eye, 0).min(-20).max(20).step(1).listen();
+    eye.add(camera.eye, 1).min(-20).max(20).step(1).listen();
+    eye.add(camera.eye, 2).min(-20).max(20).step(1).listen();
 
     const at = cameraGui.addFolder("at");
-    at.add(camera.at, 0).step(0.05).listen().domElement.style.pointerEvents = "none";;
-    at.add(camera.at, 1).step(0.05).listen().domElement.style.pointerEvents = "none";;
-    at.add(camera.at, 2).step(0.05).listen().domElement.style.pointerEvents = "none";;
+    at.add(camera.at, 0).min(-20).max(20).step(1).listen();
+    at.add(camera.at, 1).min(-20).max(20).step(1).listen();
+    at.add(camera.at, 2).min(-20).max(20).step(1).listen();
 
     const up = cameraGui.addFolder("up");
-    up.add(camera.up, 0).step(0.05).listen().domElement.style.pointerEvents = "none";;
-    up.add(camera.up, 1).step(0.05).listen().domElement.style.pointerEvents = "none";;
-    up.add(camera.up, 2).step(0.05).listen().domElement.style.pointerEvents = "none";;
+    up.add(camera.up, 0).min(-20).max(20).step(1).listen();
+    up.add(camera.up, 1).min(-2).max(2).step(1).listen();
+    up.add(camera.up, 2).min(-20).max(20).step(1).listen();
 
-    // Pasta para light 1
-    const lights = gui.addFolder("lights");
-    const light1 = lights.addFolder("first light");
+    let lights = [];
 
-    const positionGui = light1.addFolder("position");
-    positionGui.add(position, "x");
-    positionGui.add(position, "y");
-    positionGui.add(position, "z");
-    positionGui.add(position, "w");
+    // Pasta para lights
+    const lightsGui = gui.addFolder("lights");
+    function createDefaultLight() {
+        return {
+            position: { x: 0, y: 0, z: 10, w: 1 },
+            intensities: {
+                ambient: vec3(120,120,120),
+                diffuse: vec3(255,255,255),
+                specular: vec3(200,200,200)
+            },
+            axis: { x: 0, y: 0, z: -1 },  // spotlight direction
+            spotInfo: {
+                aperture: 45,
+                cutoff: 10
+            }
+        };
+    }
+    //const light1 = lightsGui.addFolder("first light");
+    const addButton = { addLight: function() {
+        lights.push(createDefaultLight());
+        rebuildLightsGUI();
+    }};
+    lightsGui.add(addButton, "addLight").name("Add Light");
 
-    const intensitiesGui = light1.addFolder("intensities");
-    intensitiesGui.addColor(intensities, "ambient");
-    intensitiesGui.addColor(intensities, "diffuse");
-    intensitiesGui.addColor(intensities, "specular");
+    gui.add(shading, "mode", { Phong:0.0, Gouraud:1.0 });
 
-    const axisGui = light1.addFolder("axis");
-    axisGui.add(axis, "x");
-    axisGui.add(axis, "y");
-    axisGui.add(axis, "z");
+    function rebuildLightsGUI() {
+        if (lightsGui.__folders) {
+            for (let key of Object.keys(lightsGui.__folders)) {
+                lightsGui.removeFolder(lightsGui.__folders[key]);
+            }
+        }
+        lights.forEach((light, idx) => {
+            const f = lightsGui.addFolder("Light " + idx);
 
-    light1.add(spotInfo, "aperture").min(0).max(180);
-    light1.add(spotInfo, "cutoff").min(0).max(100);
+            const positionGui = f.addFolder("position");
+            positionGui.add(light.position, "x");
+            positionGui.add(light.position, "y");
+            positionGui.add(light.position, "z");
+            positionGui.add(light.position, "w");
+
+            const intensitiesGui = f.addFolder("intensities");
+            intensitiesGui.addColor(light.intensities, "ambient");
+            intensitiesGui.addColor(light.intensities, "diffuse");
+            intensitiesGui.addColor(light.intensities, "specular");
+
+            const axisGui = f.addFolder("axis");
+            axisGui.add(light.axis, "x");
+            axisGui.add(light.axis, "y");
+            axisGui.add(light.axis, "z");
+
+            f.add(light.spotInfo, "aperture").min(0).max(180);
+            f.add(light.spotInfo, "cutoff").min(0).max(100);
+        });
+    }
+
+    lights.push(createDefaultLight());
+    rebuildLightsGUI();
 
     const materialGui = gui.addFolder("material (bunny)");
     materialGui.addColor(material, "Ka");
@@ -355,48 +367,53 @@ function setup(shaders) {
     function uploadNormals() { uploadMatrix("u_normals", normalMatrix(STACK.modelView())); }
 
     function uploadUniforms() {
-        // Enviando first light
-        const u_light_amb_loc = gl.getUniformLocation(program, "u_light.ambient");
-        const u_light_dif_loc = gl.getUniformLocation(program, "u_light.diffuse");
-        const u_light_spe_loc = gl.getUniformLocation(program, "u_light.specular");
-        const u_light_pos_loc = gl.getUniformLocation(program, "u_light.position"); // Assumindo que você vai criar isso no shader ou usar fixo por enquanto
+        gl.uniform1i(gl.getUniformLocation(program, "u_n_lights"), lights.length);
+        gl.uniform1i(gl.getUniformLocation(program, "u_shading_mode"), shading.mode);
+        for (let i = 0; i < lights.length; i++) {
+            const u_light_amb_loc = gl.getUniformLocation(program, "u_lights[" + i + "].ambient");
+            const u_light_dif_loc = gl.getUniformLocation(program, "u_lights[" + i + "].diffuse");
+            const u_light_spe_loc = gl.getUniformLocation(program, "u_lights[" + i + "].specular");
+            // Spotlight
+            const u_light_pos_loc = gl.getUniformLocation(program, "u_lights[" + i + "].position"); // Assumindo que você vai criar isso no shader ou usar fixo por enquanto
+            const u_light_dir_loc = gl.getUniformLocation(program, "u_lights[" + i + "].direction");
+            const u_light_cut_loc = gl.getUniformLocation(program, "u_lights[" + i + "].cutoff");
+            const u_light_apr_loc = gl.getUniformLocation(program, "u_lights[" + i + "].aperture");
 
-        // Spotlight
-        const u_light_dir_loc = gl.getUniformLocation(program, "u_light.direction");
-        const u_light_cut_loc = gl.getUniformLocation(program, "u_light.cutoff");
-        const u_light_apr_loc = gl.getUniformLocation(program, "u_light.aperture");
+            gl.uniform3fv(u_light_amb_loc, flatten(vec3(lights[i].intensities.ambient)));
+            gl.uniform3fv(u_light_dif_loc, flatten(vec3(lights[i].intensities.diffuse)));
+            gl.uniform3fv(u_light_spe_loc, flatten(vec3(lights[i].intensities.specular)));
 
-        gl.uniform3fv(u_light_amb_loc, flatten(vec3(intensities.ambient)));
-        gl.uniform3fv(u_light_dif_loc, flatten(vec3(intensities.diffuse)));
-        gl.uniform3fv(u_light_spe_loc, flatten(vec3(intensities.specular)));
+            // Posição World -> Camera
+            // A posição definida no GUI é Mundo. O Shader espera camera.
+            // Multiplicamos ViewMatrix * LightPosition
+            const posWorld = vec4(
+                lights[i].position.x,
+                lights[i].position.y,
+                lights[i].position.z,
+                lights[i].position.w
+            );
+            let lightPosCamera = mult(mView, posWorld);
+            gl.uniform4fv(u_light_pos_loc, flatten(lightPosCamera));
 
-        // Posição World -> Camera
-        // A posição definida no GUI é Mundo. O Shader espera camera.
-        // Multiplicamos ViewMatrix * LightPosition
-        let lightPosWorld = vec4(position.x, position.y, position.z, position.w);
-        let lightPosCamera = mult(mView, lightPosWorld);
+            // Direção World -> Camera
+            // O eixo (direção do spot) também precisa girar com a camera
+            // O 'w' é 0.0 pois é um vetor (direção), não um ponto.
+            // Axis → camera space
+            let spotDirWorld = vec4(lights[i].axis.x, lights[i].axis.y, lights[i].axis.z, 0.0);
+            let spotDirCamera = mult(mView, spotDirWorld);
 
-        gl.uniform4fv(u_light_pos_loc, flatten(lightPosCamera));
+            // Passamos apenas xyz normalizado
+            gl.uniform3fv(u_light_dir_loc, flatten(normalize(vec3(spotDirCamera[0], spotDirCamera[1], spotDirCamera[2]))));
 
-        // Direção World -> Camera
-        // O eixo (direção do spot) também precisa girar com a camera
-        // O 'w' é 0.0 pois é um vetor (direção), não um ponto.
-        let spotDirWorld = vec4(axis.x, axis.y, axis.z, 0.0);
-        let spotDirCamera = mult(mView, spotDirWorld);
+            // Parametros spotlight
+            gl.uniform1f(u_light_cut_loc, lights[i].spotInfo.cutoff);
+            
+            // Convertemos graus para cosseno do ângulo para o shader
+            // cos(graus * PI / 180)
+            gl.uniform1f(u_light_apr_loc, Math.cos(lights[i].spotInfo.aperture * Math.PI / 180));
 
-        // Passamos apenas xyz normalizado
-        gl.uniform3fv(u_light_dir_loc, flatten(normalize(vec3(spotDirCamera[0], spotDirCamera[1], spotDirCamera[2]))));
-
-        // Parametros spotlight
-        gl.uniform1f(u_light_cut_loc, spotInfo.cutoff);
-        
-        // Convertemos graus para cosseno do ângulo para o shader
-        // cos(graus * PI / 180)
-        let apertureCos = Math.cos(spotInfo.aperture * Math.PI / 180);
-        gl.uniform1f(u_light_apr_loc, apertureCos);
-
-        gl.uniform1i(gl.getUniformLocation(program, "u_use_normals"), options.normals);
-    } 
+            }
+        } 
 
     function uploadMaterial(mat) {
         const u_mat_ka_loc = gl.getUniformLocation(program, "u_material.Ka");
