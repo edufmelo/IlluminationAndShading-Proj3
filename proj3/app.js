@@ -129,6 +129,7 @@ function setup(shaders) {
             }
         };
     }
+    
     const MAX_LIGHTS = 3;
     const addButton = { addLight: function() {
         if (lights.length < MAX_LIGHTS) {
@@ -140,6 +141,18 @@ function setup(shaders) {
     }};
 
     lightsGui.add(addButton, "addLight").name("Add Light");
+
+    const removeButton = { removeLight: function() {
+        // Verifica se existem luzes para remover (minimo 1)
+        if (lights.length > 1) {
+            lights.pop(); // Remove a última luz do array
+            rebuildLightsGUI(); // Reconstrói o menu
+        } else {
+            alert("No lights to remove.");
+        }
+    }};
+
+    lightsGui.add(removeButton, "removeLight").name("Remove Light");
 
     gui.add(shading, "mode", { Phong:0.0, Gouraud:1.0 });
 
