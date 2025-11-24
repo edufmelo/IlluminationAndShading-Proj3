@@ -10,7 +10,7 @@ uniform mat4 u_model_view;
 uniform mat4 u_projection;
 uniform mat4 u_normals;
 
-const int MAX_LIGHTS = 8;
+const int MAX_LIGHTS = 3;
 
 struct LightInfo {
     vec3 ambient;

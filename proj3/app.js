@@ -77,6 +77,8 @@ function setup(shaders) {
         Ks: vec3(200, 200, 200),  // Brilho quase branco
         shininess: 60
     };
+
+    let maxLights;
     let shading = { mode: 0 }; // 0 = Phong, 1 = Gouraud
     const gui = new dat.GUI();
 
@@ -133,11 +135,17 @@ function setup(shaders) {
             }
         };
     }
+    
     //const light1 = lightsGui.addFolder("first light");
     const addButton = { addLight: function() {
-        lights.push(createDefaultLight());
-        rebuildLightsGUI();
+        if (lights.length < 3) {
+            lights.push(createDefaultLight());
+            rebuildLightsGUI();
+        } else {
+            alert("Maximum of 3 lights reached!"); 
+        }
     }};
+
     lightsGui.add(addButton, "addLight").name("Add Light");
 
     gui.add(shading, "mode", { Phong:0.0, Gouraud:1.0 });
@@ -148,6 +156,7 @@ function setup(shaders) {
                 lightsGui.removeFolder(lightsGui.__folders[key]);
             }
         }
+
         lights.forEach((light, idx) => {
             const f = lightsGui.addFolder("Light " + idx);
 
@@ -369,10 +378,12 @@ function setup(shaders) {
     function uploadUniforms() {
         gl.uniform1i(gl.getUniformLocation(program, "u_n_lights"), lights.length);
         gl.uniform1i(gl.getUniformLocation(program, "u_shading_mode"), shading.mode);
+        
         for (let i = 0; i < lights.length; i++) {
             const u_light_amb_loc = gl.getUniformLocation(program, "u_lights[" + i + "].ambient");
             const u_light_dif_loc = gl.getUniformLocation(program, "u_lights[" + i + "].diffuse");
             const u_light_spe_loc = gl.getUniformLocation(program, "u_lights[" + i + "].specular");
+            
             // Spotlight
             const u_light_pos_loc = gl.getUniformLocation(program, "u_lights[" + i + "].position"); // Assumindo que você vai criar isso no shader ou usar fixo por enquanto
             const u_light_dir_loc = gl.getUniformLocation(program, "u_lights[" + i + "].direction");

@@ -8,7 +8,7 @@ in vec3 v_viewer;
 in vec3 v_color;
 out vec4 color;
 
-const int MAX_LIGHTS = 8;
+const int MAX_LIGHTS = 3;
 
 struct MaterialInfo {
     vec3 Ka; // Ambiente 
