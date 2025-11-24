@@ -81,11 +81,12 @@ void main() {
             vec3 H = normalize(L + V);
 
             //Especular
-            float specularFactor = 0.0;
-            if (diffuseFactor > 0.0) {
-                specularFactor = pow(max(dot(N, H), 0.0), u_material.shininess);
-            }
+            float specularFactor = pow(max(dot(N,H), 0.0),u_material.shininess);
             vec3 specular = specularFactor * (lightSpe * matSpe);
+
+            if( dot(L,N) < 0.0 ) {
+                specular = vec3(0.0, 0.0, 0.0);
+            }
             // Só aplica se a luz for pontual (w=1). Se for direcional (w=0), ignora spot.
             if (u_lights[i].position.w == 1.0) {
                 // Vetor D, na qual, é a direção do spot (normalizada)

@@ -13,7 +13,7 @@ import * as STACK from '../../libs/stack.js';
 function setup(shaders) {
     const canvas = document.getElementById('gl-canvas');
     const gl = setupWebGL(canvas);
-
+    
     CUBE.init(gl);
     TORUS.init(gl);
     BUNNY.init(gl);
@@ -27,19 +27,16 @@ function setup(shaders) {
         at: vec3(0, 0, 0),
         up: vec3(0, 1, 0),
         fovy: 55,
-        aspect: 1, // Updated further down
+        aspect: 1,
         near: 0.1,
         far: 20
     }
 
     let options = {
-        wireframe: false
+        wireframe: false,
+        backfaceCulling: true,
+        depthTest: true
     }
-
-    // let options = {
-    //     backfaceCulling: true,
-    //     depthTest: true
-    // }
 
     // Material interativo para Bunny
     let material = {
@@ -53,7 +50,7 @@ function setup(shaders) {
     const materialBase = {
         Ka: vec3(191,169,81),
         Kd: vec3(180, 140, 100),  
-        Ks: vec3(50, 50, 50),     // Pouco brilho (fosco)
+        Ks: vec3(50, 50, 50),
         shininess: 10
     };
 
@@ -74,24 +71,21 @@ function setup(shaders) {
     const materialCube = {
         Ka: vec3(50, 20, 20),
         Kd: vec3(200, 80, 80),    
-        Ks: vec3(200, 200, 200),  // Brilho quase branco
+        Ks: vec3(200, 200, 200),
         shininess: 60
     };
 
-    let maxLights;
     let shading = { mode: 0 }; // 0 = Phong, 1 = Gouraud
     const gui = new dat.GUI();
 
     const optionsGui = gui.addFolder("options");
     optionsGui.add(options, "wireframe");
-
-    // optionsGui.add(options, "backfaceCulling");
-    // optionsGui.add(options, "depthTest");
+    optionsGui.add(options, "backfaceCulling").name("Backface Culling:");
+    optionsGui.add(options, "depthTest").name("Depth Test:");
 
     const cameraGui = gui.addFolder("camera");
 
     cameraGui.add(camera, "fovy").min(1).max(100).step(1).listen();
-    cameraGui.add(camera, "aspect").min(0).max(10).step(0.01).listen().domElement.style.pointerEvents = "none";
 
     cameraGui.add(camera, "near").min(0.1).max(20).step(0.01).listen().onChange(function (v) {
         camera.near = Math.min(camera.far - 0.5, v);
@@ -135,10 +129,9 @@ function setup(shaders) {
             }
         };
     }
-    
-    //const light1 = lightsGui.addFolder("first light");
+    const MAX_LIGHTS = 3;
     const addButton = { addLight: function() {
-        if (lights.length < 3) {
+        if (lights.length < MAX_LIGHTS) {
             lights.push(createDefaultLight());
             rebuildLightsGUI();
         } else {
@@ -258,7 +251,6 @@ function setup(shaders) {
                 eyeAt = mult(inCameraSpace(rotation), eyeAt);
                 newUp = mult(inCameraSpace(rotation), newUp);
 
-                console.log(eyeAt, newUp);
 
                 camera.eye[0] = camera.at[0] + eyeAt[0];
                 camera.eye[1] = camera.at[1] + eyeAt[1];
@@ -442,6 +434,21 @@ function setup(shaders) {
         window.requestAnimationFrame(render);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+         // BACKFACE CULLING
+        if (options.backfaceCulling) {
+            gl.enable(gl.CULL_FACE);
+            gl.cullFace(gl.BACK);
+        } else {
+            gl.disable(gl.CULL_FACE);
+        }
+
+        // DEPTH BUFFER
+        if (options.depthTest) {
+            gl.enable(gl.DEPTH_TEST);
+        } else {
+            gl.disable(gl.DEPTH_TEST);
+        }
 
         gl.useProgram(program);
 
