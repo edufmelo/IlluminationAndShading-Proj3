@@ -122,16 +122,16 @@ function setup(shaders) {
     const lightsGui = gui.addFolder("lights");
     function createDefaultLight() {
         return {
-            position: { x: 0, y: 0, z: 10, w: 1 },
+            position: { x: 0, y: 5, z: 10, w: 1 },
             intensities: {
                 ambient: vec3(120,120,120),
                 diffuse: vec3(255,255,255),
                 specular: vec3(200,200,200)
             },
-            axis: { x: 0, y: 0, z: -1 },  // spotlight direction
+            axis: { x: 0, y: -1, z: -1.7 },  // spotlight direction
             spotInfo: {
-                aperture: 45,
-                cutoff: 10
+                aperture: 14,
+                cutoff: 25
             }
         };
     }
