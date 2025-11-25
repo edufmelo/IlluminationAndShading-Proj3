@@ -119,6 +119,8 @@ function setup(shaders) {
     const lightsGui = gui.addFolder("lights");
     function createDefaultLight() {
         return {
+            active: true, // utilizado para on/off da light
+            type: "Spotlight", // luz inicial
             position: { x: 0, y: 5, z: 10, w: 1 },
             intensities: {
                 ambient: vec3(120,120,120),
@@ -127,7 +129,7 @@ function setup(shaders) {
             },
             axis: { x: 0, y: -1, z: -1.7 },  // spotlight direction
             spotInfo: {
-                aperture: 14,
+                aperture: 15,
                 cutoff: 25
             }
         };
@@ -166,27 +168,40 @@ function setup(shaders) {
             }
         }
 
-        lights.forEach((light, idx) => {
-            const f = lightsGui.addFolder("Light " + idx);
+        lights.forEach((light, idLight) => {
+            const f = lightsGui.addFolder("Light " + idLight);
+
+            f.add(light, "active").name("On/Off");
+
+            // OnChange para atualizar pasta axis, já que só será usada em Spotlight
+            f.add(light, "type", ["Spotlight", "Point", "Directional"])
+            .name("Type")
+            .onChange(function() {
+                 rebuildLightsGUI();
+             });;
 
             const positionGui = f.addFolder("position");
             positionGui.add(light.position, "x");
             positionGui.add(light.position, "y");
             positionGui.add(light.position, "z");
-            positionGui.add(light.position, "w");
 
             const intensitiesGui = f.addFolder("intensities");
             intensitiesGui.addColor(light.intensities, "ambient");
             intensitiesGui.addColor(light.intensities, "diffuse");
             intensitiesGui.addColor(light.intensities, "specular");
 
-            const axisGui = f.addFolder("axis");
-            axisGui.add(light.axis, "x");
-            axisGui.add(light.axis, "y");
-            axisGui.add(light.axis, "z");
+            if (light.type == "Spotlight") {
+                // axis representa a direção do holofote, logo, somente no spotlight
+                const axisGui = f.addFolder("axis");
+                axisGui.add(light.axis, "x");
+                axisGui.add(light.axis, "y");
+                axisGui.add(light.axis, "z");
+                f.add(light.spotInfo, "aperture").min(0).max(180);
+                // atenua intensidade ao se afastar
+                f.add(light.spotInfo, "cutoff").min(0).max(100);
+            }
 
-            f.add(light.spotInfo, "aperture").min(0).max(180);
-            f.add(light.spotInfo, "cutoff").min(0).max(100);
+            f.open();
         });
     }
 
@@ -417,10 +432,33 @@ function setup(shaders) {
             const u_light_cut_loc = gl.getUniformLocation(program, "u_lights[" + i + "].cutoff");
             const u_light_apr_loc = gl.getUniformLocation(program, "u_lights[" + i + "].aperture");
 
-            gl.uniform3fv(u_light_amb_loc, flatten(vec3(lights[i].intensities.ambient)));
-            gl.uniform3fv(u_light_dif_loc, flatten(vec3(lights[i].intensities.diffuse)));
-            gl.uniform3fv(u_light_spe_loc, flatten(vec3(lights[i].intensities.specular)));
+            // Verifica se a luz está On ou Off
+            let ambientIsActive = lights[i].active ? lights[i].intensities.ambient : vec3(0, 0, 0);
+            let diffuseIsActive = lights[i].active ? lights[i].intensities.diffuse : vec3(0, 0, 0);
+            let specularIsActive = lights[i].active ? lights[i].intensities.specular : vec3(0, 0, 0);
 
+            gl.uniform3fv(u_light_amb_loc, flatten(vec3(ambientIsActive)));
+            gl.uniform3fv(u_light_dif_loc, flatten(vec3(diffuseIsActive)));
+            gl.uniform3fv(u_light_spe_loc, flatten(vec3(specularIsActive)));
+
+            // w = 0 -> vetor (direção)
+            // w = 1 -> ponto (localização)
+            let posW = 1;     // w = 1 para point e spotlight
+            let cutoff = 0;   // Padrão para Point - sem atenuação angular
+            let aperture = 180; // Padrão para Point - abre max
+
+            // Validar com professor:
+            // Axis, cutoff e aperture só vão ser usado para spotlight, certo?
+            // Assim, podemos remover a pasta quando não é Spotlight?
+            if (lights[i].type === "Spotlight") {
+                posW = 1;
+                cutoff = lights[i].spotInfo.cutoff;      // pega do slider (usuário)
+                aperture = lights[i].spotInfo.aperture; 
+            }
+            else if (lights[i].type === "Directional") {
+                posW = 0; // w = 0
+            } 
+            
             // Posição World -> Camera
             // A posição definida no GUI é Mundo. O Shader espera camera.
             // Multiplicamos ViewMatrix * LightPosition
@@ -428,7 +466,7 @@ function setup(shaders) {
                 lights[i].position.x,
                 lights[i].position.y,
                 lights[i].position.z,
-                lights[i].position.w
+                posW
             );
             let lightPosCamera = mult(mView, posWorld);
             gl.uniform4fv(u_light_pos_loc, flatten(lightPosCamera));
@@ -444,11 +482,11 @@ function setup(shaders) {
             gl.uniform3fv(u_light_dir_loc, flatten(normalize(vec3(spotDirCamera[0], spotDirCamera[1], spotDirCamera[2]))));
 
             // Parametros spotlight
-            gl.uniform1f(u_light_cut_loc, lights[i].spotInfo.cutoff);
+            gl.uniform1f(u_light_cut_loc, cutoff);
             
             // Convertemos graus para cosseno do ângulo para o shader
             // cos(graus * PI / 180)
-            gl.uniform1f(u_light_apr_loc, Math.cos(lights[i].spotInfo.aperture * Math.PI / 180));
+            gl.uniform1f(u_light_apr_loc, Math.cos(aperture * Math.PI / 180));
 
             }
         } 

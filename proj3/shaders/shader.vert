@@ -99,6 +99,7 @@ void main() {
                 // Se estiver dentro do cone (cosseno maior que abertura)
                 if (spotCos > u_lights[i].aperture) {
                     // Fator de atenuação suave nas bordas
+                    // cos (alpha) ^ n
                     float spotFactor = pow(spotCos, u_lights[i].cutoff);
                     
                     diffuse *= spotFactor;
