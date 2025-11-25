@@ -29,7 +29,7 @@ function setup(shaders) {
         fovy: 55,
         aspect: 1,
         near: 0.1,
-        far: 20
+        far: 30
     }
 
     let options = {
@@ -94,9 +94,31 @@ function setup(shaders) {
         camera.near = Math.min(camera.far - 0.5, v);
     });
 
-    cameraGui.add(camera, "far").min(0.1).max(20).step(0.01).listen().onChange(function (v) {
+    cameraGui.add(camera, "far").min(0.1).max(40).step(0.01).listen().onChange(function (v) {
         camera.far = Math.max(camera.near + 0.5, v);
     });
+
+    function getForward() {
+        return normalize(subtract(camera.at, camera.eye));
+    }
+
+    function getUp(){
+        return normalize(camera.up);
+    }
+
+    function getRight() {
+        const forward = getForward();
+        return normalize(vec3(
+            forward[2], 
+            0,
+        -forward[0]
+        ));
+    }
+
+    let keys = {};
+
+    window.addEventListener("keydown", e => keys[e.key] = true);
+    window.addEventListener("keyup",   e => keys[e.key] = false);
 
     const eye = cameraGui.addFolder("eye");
     eye.add(camera.eye, 0).min(-20).max(20).step(1).listen();
@@ -523,6 +545,53 @@ function setup(shaders) {
             gl.disable(gl.DEPTH_TEST);
         }
 
+        const speed = 0.2;
+
+        let forward = getForward();
+        let right = getRight();
+        let up = getUp();
+        if (keys['w']) {
+            const newEye = add(camera.eye, scale(speed, forward));
+            camera.eye[0] = newEye[0];
+            camera.eye[1] = newEye[1];
+            camera.eye[2] = newEye[2];
+            //camera.at  = add(camera.at, scale(speed, forward));
+        }
+        if (keys['s']) {
+            const newEye = subtract(camera.eye, scale(speed, forward));
+            camera.eye[0] = newEye[0];
+            camera.eye[1] = newEye[1];
+            camera.eye[2] = newEye[2];
+            //camera.at  = subtract(camera.at, scale(speed, forward));
+        }
+        if (keys['d']) {
+            const newEye = subtract(camera.eye, scale(speed, right));
+            camera.eye[0] = newEye[0];
+            camera.eye[1] = newEye[1];
+            camera.eye[2] = newEye[2];
+            //camera.at  = subtract(camera.at, scale(speed, right));
+        }
+        if (keys['a']) {
+            const newEye = add(camera.eye, scale(speed, right));
+            camera.eye[0] = newEye[0];
+            camera.eye[1] = newEye[1];
+            camera.eye[2] = newEye[2];
+            //camera.at  = add(camera.at, scale(speed, right));
+        }
+        if (keys['q']) {
+            const newEye = subtract(camera.eye, scale(speed, up));
+            camera.eye[0] = newEye[0];
+            camera.eye[1] = newEye[1];
+            camera.eye[2] = newEye[2];
+            //camera.at  = subtract(camera.at, scale(speed, right));
+        }
+        if (keys['e']) {
+            const newEye = add(camera.eye, scale(speed, up));
+            camera.eye[0] = newEye[0];
+            camera.eye[1] = newEye[1];
+            camera.eye[2] = newEye[2];
+            //camera.at  = add(camera.at, scale(speed, right));
+        }
         gl.useProgram(program);
 
         mView = lookAt(camera.eye, camera.at, camera.up);
