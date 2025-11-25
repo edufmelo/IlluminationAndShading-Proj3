@@ -85,6 +85,9 @@ function setup(shaders) {
 
     const cameraGui = gui.addFolder("camera");
 
+    const cameraControls = { reset: resetCamera };
+    cameraGui.add(cameraControls, "reset").name("Reset Camera");
+
     cameraGui.add(camera, "fovy").min(1).max(100).step(1).listen();
 
     cameraGui.add(camera, "near").min(0.1).max(20).step(0.01).listen().onChange(function (v) {
@@ -107,7 +110,7 @@ function setup(shaders) {
 
     const up = cameraGui.addFolder("up");
     up.add(camera.up, 0).min(-20).max(20).step(1).listen();
-    up.add(camera.up, 1).min(-2).max(2).step(1).listen();
+    up.add(camera.up, 1).min(-1).max(1).step(1).listen();
     up.add(camera.up, 2).min(-20).max(20).step(1).listen();
 
     let lights = [];
@@ -301,6 +304,25 @@ function setup(shaders) {
         camera.aspect = canvas.width / canvas.height;
 
         gl.viewport(0, 0, canvas.width, canvas.height);
+    }
+
+    function resetCamera() {
+        // Restaurar valores iniciais
+        camera.eye[0] = 2;
+        camera.eye[1] = 4;
+        camera.eye[2] = 11;
+
+        camera.at[0] = 0;
+        camera.at[1] = 0;
+        camera.at[2] = 0;
+
+        camera.up[0] = 0;
+        camera.up[1] = 1;
+        camera.up[2] = 0;
+
+        camera.fovy = 55;
+        camera.near = 0.1;
+        camera.far = 20;
     }
 
     function drawBase() {
