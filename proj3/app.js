@@ -380,7 +380,7 @@ function setup(shaders) {
 
         camera.fovy = 55;
         camera.near = 0.1;
-        camera.far = 20;
+        camera.far = 30;
     }
 
     function drawBase() {
