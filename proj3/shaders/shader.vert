@@ -49,10 +49,9 @@ void main() {
         vec3 V = normalize(-posC);
         // Vetor Halfway ou Reflexão (Phong)
         // slide usa H = L + V 
-        //vec3 H = normalize(L + V);
+        // vec3 H = normalize(L + V);
 
         // Converter de 0 a 255 para 0 a 1
-        // O dat.gui manda 0-255, mas a luz calcula com 0.0-1.0
         vec3 matAmb = u_material.Ka / 255.0;
         vec3 matDif = u_material.Kd / 255.0;
         vec3 matSpe = u_material.Ks / 255.0;
@@ -117,9 +116,7 @@ void main() {
         v_color = result;
     }
     if (u_shading_mode == 0) {
-        // Calcula vetor Normal (N) 
         v_normal = (u_normals * a_normal).xyz;
-        // Calcula vetor View (V)
         // Como estamos no referencial da camera (olho em 0,0,0), V aponta da superfície para a origem
         // Exemplo no slide 4 (aula 21)
         v_viewer = -posC;

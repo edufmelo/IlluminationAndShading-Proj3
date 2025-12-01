@@ -42,7 +42,7 @@ function setup(shaders) {
     let material = {
         Ka: vec3(55, 45, 45),   
         Kd: vec3(220, 180, 180),  
-        Ks: vec3(255, 255, 255),  // Brilho branco intenso
+        Ks: vec3(255, 255, 255),  
         shininess: 150 
     }
 
@@ -117,8 +117,8 @@ function setup(shaders) {
 
     let keys = {};
 
-    window.addEventListener("keydown", e => keys[e.key] = true);
-    window.addEventListener("keyup",   e => keys[e.key] = false);
+    window.addEventListener("keydown", e => keys[e.key.toLowerCase()] = true);
+    window.addEventListener("keyup",   e => keys[e.key.toLowerCase()] = false);
 
     const eye = cameraGui.addFolder("eye");
     eye.add(camera.eye, 0).min(-20).max(20).step(1).listen();
@@ -390,7 +390,6 @@ function setup(shaders) {
             uploadModelView();
             uploadNormals();
 
-            // Carrega material verde para chão
             uploadMaterial(materialBase);
 
             CUBE.draw(gl, program,  options.wireframe ? gl.LINES : gl.TRIANGLES);
@@ -470,7 +469,7 @@ function setup(shaders) {
             const u_light_spe_loc = gl.getUniformLocation(program, "u_lights[" + i + "].specular");
             
             // Spotlight
-            const u_light_pos_loc = gl.getUniformLocation(program, "u_lights[" + i + "].position"); // Assumindo que você vai criar isso no shader ou usar fixo por enquanto
+            const u_light_pos_loc = gl.getUniformLocation(program, "u_lights[" + i + "].position"); 
             const u_light_dir_loc = gl.getUniformLocation(program, "u_lights[" + i + "].direction");
             const u_light_cut_loc = gl.getUniformLocation(program, "u_lights[" + i + "].cutoff");
             const u_light_apr_loc = gl.getUniformLocation(program, "u_lights[" + i + "].aperture");
@@ -495,8 +494,6 @@ function setup(shaders) {
             let posY = lights[i].position.y;
             let posZ = lights[i].position.z;
 
-            // MAS, se for Directional, a posição (0,0,0) quebra o shader.
-            // Vamos usar os valores de 'axis' como direção da luz solar.
             if (lights[i].type === "Directional") {
                 posW = 0;
                 if (posX === 0 && posY === 0 && posZ === 0) {
@@ -585,47 +582,42 @@ function setup(shaders) {
         let forward = getForward();
         let right = getRight();
         let up = getUp();
+        
         if (keys['w']) {
             const newEye = add(camera.eye, scale(speed, forward));
             camera.eye[0] = newEye[0];
             camera.eye[1] = newEye[1];
             camera.eye[2] = newEye[2];
-            //camera.at  = add(camera.at, scale(speed, forward));
         }
         if (keys['s']) {
             const newEye = subtract(camera.eye, scale(speed, forward));
             camera.eye[0] = newEye[0];
             camera.eye[1] = newEye[1];
             camera.eye[2] = newEye[2];
-            //camera.at  = subtract(camera.at, scale(speed, forward));
         }
         if (keys['d']) {
             const newEye = subtract(camera.eye, scale(speed, right));
             camera.eye[0] = newEye[0];
             camera.eye[1] = newEye[1];
             camera.eye[2] = newEye[2];
-            //camera.at  = subtract(camera.at, scale(speed, right));
         }
         if (keys['a']) {
             const newEye = add(camera.eye, scale(speed, right));
             camera.eye[0] = newEye[0];
             camera.eye[1] = newEye[1];
             camera.eye[2] = newEye[2];
-            //camera.at  = add(camera.at, scale(speed, right));
         }
         if (keys['q']) {
             const newEye = subtract(camera.eye, scale(speed, up));
             camera.eye[0] = newEye[0];
             camera.eye[1] = newEye[1];
             camera.eye[2] = newEye[2];
-            //camera.at  = subtract(camera.at, scale(speed, right));
         }
         if (keys['e']) {
             const newEye = add(camera.eye, scale(speed, up));
             camera.eye[0] = newEye[0];
             camera.eye[1] = newEye[1];
             camera.eye[2] = newEye[2];
-            //camera.at  = add(camera.at, scale(speed, right));
         }
         gl.useProgram(program);
 

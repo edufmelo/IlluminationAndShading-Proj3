@@ -39,10 +39,9 @@ void main() {
         vec3 V = normalize(v_viewer);
         // Vetor Halfway ou Reflexão (Phong)
         // slide usa H = L + V 
-        //vec3 H = normalize(L + V);
+        // vec3 H = normalize(L + V);
 
         // Converter de 0 a 255 para 0 a 1
-        // O dat.gui manda 0-255, mas a luz calcula com 0.0-1.0
         vec3 matAmb = u_material.Ka / 255.0;
         vec3 matDif = u_material.Kd / 255.0;
         vec3 matSpe = u_material.Ks / 255.0;
